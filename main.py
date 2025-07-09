@@ -1,123 +1,237 @@
-import time
 import os
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import Select
-from selenium.common.exceptions import NoSuchElementException
-from dotenv import load_dotenv
+import time
 from datetime import datetime, timedelta
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import Select
+from dotenv import load_dotenv
 
-# Carrega variáveis de ambiente do .env
-load_dotenv()
+URL_FORMULARIO = "https://sgat.markway.com.br/sgatWay/faces/atendimento/create.xhtml"
 
-# Configurações
-CAMINHO_CHROMEDRIVER = os.getenv("CAMINHO_CHROMEDRIVER")
-USUARIO = os.getenv("USUARIO")
-SENHA = os.getenv("SENHA")
-URL_FORMULARIO = os.getenv("URL_FORMULARIO")
-DATA_INICIAL = os.getenv("DATA_INICIAL")
-DATA_FINAL = os.getenv("DATA_FINAL")
-DATAS_EXCLUIDAS = os.getenv("DATAS_EXCLUIDAS")
+def log_message(message):
+    """Função para log que funciona tanto no terminal quanto na GUI"""
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    print(f"[{timestamp}] {message}")
 
-def gerar_datas_validas(data_inicial_str, data_final_str, datas_excluidas_str):
-    data_inicial = datetime.strptime(data_inicial_str, "%d/%m/%Y")
-    data_final = datetime.strptime(data_final_str, "%d/%m/%Y")
-    datas_excluidas = [datetime.strptime(d.strip(), "%d/%m/%Y") for d in datas_excluidas_str.split(",") if d.strip()]
+def load_environment_variables():
+    """Carrega as variáveis de ambiente do arquivo .env"""
+    load_dotenv()
     
-    dias = (data_final - data_inicial).days + 1
-    todas_datas = [data_inicial + timedelta(days=i) for i in range(dias)]
+    required_vars = [
+        'USUARIO', 'SENHA', 'DATA_INICIAL', 'DATA_FINAL',
+        'CLIENTE', 'ETAPA_COMERCIAL', 'CATEGORIA_ATIVIDADE', 'LOCAL_EXECUCAO',
+        'HORA_INICIO', 'HORA_FIM', 'DESCRICAO'
+    ]
     
-    datas_validas = [d.strftime("%d/%m/%Y") for d in todas_datas if d not in datas_excluidas]
-    return datas_validas
+    config = {}
+    missing_vars = []
+    
+    for var in required_vars:
+        value = os.getenv(var)
+        if value is None or value.strip() == '':
+            missing_vars.append(var)
+        else:
+            config[var] = value.strip()
+    
+    # DATAS_EXCLUIDAS é opcional
+    datas_excluidas = os.getenv('DATAS_EXCLUIDAS', '').strip()
+    config['DATAS_EXCLUIDAS'] = datas_excluidas
+    
+    if missing_vars:
+        raise ValueError(f"Variáveis obrigatórias não encontradas no .env: {', '.join(missing_vars)}")
+    
+    return config
 
-DATAS = gerar_datas_validas(DATA_INICIAL, DATA_FINAL, DATAS_EXCLUIDAS)
-
-# Valores de preenchimento
-cliente = os.getenv("CLIENTE")
-etapa_comercial = os.getenv("ETAPA_COMERCIAL")
-categoria_atividade = os.getenv("CATEGORIA_ATIVIDADE")
-local_execucao = os.getenv("LOCAL_EXECUCAO")
-hora_inicio_valor = os.getenv("HORA_INICIO")
-hora_fim_valor = os.getenv("HORA_FIM")
-descricao_valor = os.getenv("DESCRICAO")
-
-def iniciar_driver():
-    service = Service(executable_path=CAMINHO_CHROMEDRIVER)
-    driver = webdriver.Chrome(service=service)
+def setup_chrome_driver():
+    """Configura o ChromeDriver"""
+    chrome_options = Options()
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--window-size=1920,1080")
+    
+    # Usar o ChromeDriver local
+    chromedriver_path = os.path.join(os.getcwd(), 'chromedriver')
+    
+    if not os.path.exists(chromedriver_path):
+        raise FileNotFoundError(f"ChromeDriver não encontrado em: {chromedriver_path}")
+    
+    service = Service(chromedriver_path)
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    
     return driver
 
-def realizar_login(driver):
+def parse_date(date_str):
+    """Converte string de data DD/MM/AAAA para objeto datetime"""
     try:
-        campo_usuario = driver.find_element(By.ID, "j_username")
-        campo_senha = driver.find_element(By.ID, "j_password")
-        campo_usuario.send_keys(USUARIO)
-        campo_senha.send_keys(SENHA)
-        botao_login = driver.find_element(By.NAME, "j_idt22")
-        botao_login.click()
-        print("Login realizado com sucesso.")
-        time.sleep(2)
-    except NoSuchElementException:
-        print("Usuário já está logado ou página de login não foi exibida.")
+        return datetime.strptime(date_str, "%d/%m/%Y")
+    except ValueError:
+        raise ValueError(f"Formato de data inválido: {date_str}. Use DD/MM/AAAA")
 
-def acessar_formulario(driver):
-    driver.get(URL_FORMULARIO)
-    time.sleep(1)
+def generate_date_list(data_inicial, data_final, datas_excluidas_str):
+    """Gera lista de datas entre data inicial e final, excluindo as datas especificadas"""
+    start_date = parse_date(data_inicial)
+    end_date = parse_date(data_final)
+    
+    # Processar datas excluídas
+    datas_excluidas = []
+    if datas_excluidas_str:
+        for data_str in datas_excluidas_str.split(','):
+            data_str = data_str.strip()
+            if data_str:
+                try:
+                    datas_excluidas.append(parse_date(data_str))
+                except ValueError as e:
+                    log_message(f"Aviso: {e}")
+    
+    # Gerar lista de datas
+    date_list = []
+    current_date = start_date
+    
+    while current_date <= end_date:
+        if current_date not in datas_excluidas:
+            date_list.append(current_date)
+        current_date += timedelta(days=1)
+    
+    return date_list
 
-def preencher_formulario(driver, data):
+def login(driver, usuario, senha):
+    """Realiza login no sistema"""
+    log_message("Realizando login...")
+    
     try:
+        # Aguardar campos de login aparecerem
+        username_field = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "j_username"))
+        )
+        password_field = driver.find_element(By.ID, "j_password")
+        login_button = driver.find_element(By.XPATH, "//input[@type='submit' or @type='button']")
+        
+        # Preencher credenciais
+        username_field.clear()
+        username_field.send_keys(usuario)
+        
+        password_field.clear()
+        password_field.send_keys(senha)
+        
+        # Fazer login
+        login_button.click()
+        
+        # Aguardar redirecionamento
+        time.sleep(3)
+        
+        log_message("Login realizado com sucesso!")
+        
+    except Exception as e:
+        raise Exception(f"Erro durante o login: {str(e)}")
 
-        Select(driver.find_element(By.ID, "create:atendimentoBeanAtendimentoCliente")).select_by_visible_text(cliente)
+def fill_form(driver, config, data):
+    """Preenche o formulário para uma data específica"""
+    data_str = data.strftime("%d/%m/%Y")
+    log_message(f"Preenchendo formulário para {data_str}...")
+    
+    try:
+        # Aguardar página carregar
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "create:atendimentoBeanAtendimentoCliente"))
+        )
+        
+        Select(driver.find_element(By.ID, "create:atendimentoBeanAtendimentoCliente")).select_by_visible_text(config['CLIENTE'])
         time.sleep(0.1)
 
-        Select(driver.find_element(By.ID, "create:atendimentoBeanAtendimentoEtapaComercial")).select_by_visible_text(etapa_comercial)
+        Select(driver.find_element(By.ID, "create:atendimentoBeanAtendimentoEtapaComercial")).select_by_visible_text(config['ETAPA_COMERCIAL'])
         time.sleep(0.1)
 
-        Select(driver.find_element(By.ID, "create:atendimentoBeanAtendimentoTipoAtendimento")).select_by_visible_text(categoria_atividade)
+        Select(driver.find_element(By.ID, "create:atendimentoBeanAtendimentoTipoAtendimento")).select_by_visible_text(config['CATEGORIA_ATIVIDADE'])
         time.sleep(0.1)
 
-        Select(driver.find_element(By.ID, "create:atendimentoBeanLocalExecucaoAtividade")).select_by_visible_text(local_execucao)
+        Select(driver.find_element(By.ID, "create:atendimentoBeanLocalExecucaoAtividade")).select_by_visible_text(config['LOCAL_EXECUCAO'])
         time.sleep(0.1)
 
         campo_data = driver.find_element(By.ID, "create:atendimentoBeanAtendimentoData")
         campo_data.clear()
-        campo_data.send_keys(data)
+        campo_data.send_keys(data_str)
 
         hora_inicio = driver.find_element(By.ID, "create:atendimentoBeanAtendimentoHoraInicio")
         hora_inicio.clear()
-        hora_inicio.send_keys(hora_inicio_valor)
+        hora_inicio.send_keys(config['HORA_INICIO'])
         time.sleep(0.1)
 
         hora_fim = driver.find_element(By.ID, "create:atendimentoBeanAtendimentoHoraTermino")
         hora_fim.clear()
-        hora_fim.send_keys(hora_fim_valor)
+        hora_fim.send_keys(config['HORA_FIM'])
         time.sleep(0.1)
 
         descricao = driver.find_element(By.ID, "create:atendimentoBeanAtendimentoDescricao")
         descricao.clear()
-        descricao.send_keys(descricao_valor)
+        descricao.send_keys(config['DESCRICAO'])
         time.sleep(2)
 
         driver.find_element(By.LINK_TEXT, "Salvar").click()
-        print(f"Formulário preenchido para a data {data}.")
+        log_message(f"Formulário preenchido para a data {data_str}.")
         time.sleep(1)
-    except NoSuchElementException as e:
-        print(f"Erro ao preencher o formulário na data {data}: {e}")
+        
+    except Exception as e:
+        log_message(f"Erro ao preencher formulário para {data_str}: {str(e)}")
 
 def main():
-    driver = iniciar_driver()
-    
-    # Acesso inicial para verificar login
-    driver.get(URL_FORMULARIO)
-    
-    realizar_login(driver)
-
-    for data in DATAS:
-        acessar_formulario(driver)
-        preencher_formulario(driver, data.strip())
-
-    print("Processo finalizado.")
-    driver.quit()
+    """Função principal"""
+    try:
+        log_message("Iniciando aplicação...")
+        
+        # Carregar configurações
+        config = load_environment_variables()
+        log_message("Configurações carregadas do arquivo .env")
+        
+        # Gerar lista de datas
+        date_list = generate_date_list(
+            config['DATA_INICIAL'],
+            config['DATA_FINAL'],
+            config['DATAS_EXCLUIDAS']
+        )
+        
+        log_message(f"Processando {len(date_list)} datas")
+        
+        # Configurar driver
+        driver = setup_chrome_driver()
+        log_message("ChromeDriver configurado")
+        
+        try:
+            # Navegar para o formulário
+            driver.get(URL_FORMULARIO)
+            log_message(f"Navegando para: {URL_FORMULARIO}")
+            
+            # Fazer login
+            login(driver, config['USUARIO'], config['SENHA'])
+            
+            # Processar cada data
+            for i, data in enumerate(date_list, 1):
+                log_message(f"Processando {i}/{len(date_list)}")
+                
+                # Navegar para o formulário (caso tenha sido redirecionado)
+                if driver.current_url != URL_FORMULARIO:
+                    driver.get(URL_FORMULARIO)
+                
+                # Preencher formulário
+                fill_form(driver, config, data)
+                
+                # Pequena pausa entre formulários
+                time.sleep(1)
+            
+            log_message("Todos os formulários foram processados com sucesso!")
+            
+        finally:
+            driver.quit()
+            log_message("ChromeDriver fechado")
+            
+    except Exception as e:
+        log_message(f"Erro na execução: {str(e)}")
+        raise
 
 if __name__ == "__main__":
     main()
+

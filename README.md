@@ -1,134 +1,135 @@
-# 🧾 SGAT Form Autofill
+# SGAT Form Autofill - Versão 2.0
 
-Automação para preenchimento de formulários no sistema **SGAT (Markway)** utilizando **Python** e **Selenium**.  
-O script realiza login automático, preenche campos configuráveis do formulário de atendimento e executa esse processo para um **intervalo de datas**, excluindo feriados, folgas ou dias específicos definidos.
+Este aplicativo desktop automatiza o preenchimento de formulários no sistema **SGAT (Markway)**, utilizando **Python** e **Selenium**. Agora, com uma **interface gráfica amigável (Tkinter)**, o script realiza login automático, preenche campos configuráveis do formulário de atendimento e executa esse processo para um **intervalo de datas**, excluindo feriados, folgas ou dias específicos definidos.
 
 ---
 
 ## 📌 Funcionalidades
 
-- Login automático no sistema SGAT
-- Preenchimento de formulário com dados configuráveis
-- Execução para um intervalo de datas (com exclusões)
-- Navegação e submissão automática
-- Facilidade de configuração via `.env`
+- **Interface Gráfica (Tkinter)**: Configuração intuitiva das variáveis e acompanhamento da execução.
+- **ChromeDriver Integrado**: O executável do ChromeDriver (para Windows) é incluído no pacote, eliminando a necessidade de download e configuração manual.
+- **Geração Automática de `.env`**: O arquivo de configuração `.env` é criado e atualizado diretamente pela interface gráfica.
+- Login automático no sistema SGAT.
+- Preenchimento de formulário com dados configuráveis.
+- Execução para um intervalo de datas (com exclusões).
+- Navegação e submissão automática.
+- Log de execução em tempo real na interface.
+
+---
+
+## 📁 Estrutura dos Arquivos
+
+```
+projeto/
+├── app_gui.py          # Interface gráfica principal do aplicativo
+├── main.py             # Script de automação principal (adaptado para GUI e multi-OS)
+├── chromedriver        # Executável do ChromeDriver para Windows
+├── requirements.txt    # Dependências Python do projeto
+├── README.md           # Esta documentação
+├── run.bat             # Script de inicialização para Windows
+├── run.sh              # Script de inicialização para Linux/macOS
+└── .env                # Arquivo de configuração (gerado e gerenciado pela GUI)
+```
 
 ---
 
 ## ⚙️ Requisitos
 
-- Python 3.8+
-- Google Chrome instalado
-- [ChromeDriver](https://sites.google.com/chromium.org/driver/) compatível com sua versão do Chrome
+- Python 3.11+ (versões anteriores podem funcionar, mas 3.11+ é recomendado).
+- Google Chrome instalado no seu sistema.
 
 ---
 
-## 🧪 Ambiente Virtual (recomendado)
+## 🚀 Como Usar
 
-```bash
-# Crie o ambiente virtual
-python -m venv venv
+### 1. Iniciar o Aplicativo
 
-# Ative o ambiente
-# Windows:
-venv\Scripts\activate
+-   **No Windows**: Clique duas vezes no arquivo `run.bat` ou execute-o no prompt de comando:
+    ```bash
+    run.bat
+    ```
 
-# Linux/macOS:
-source venv/bin/activate
-```
+### 2. Configurar as Variáveis
+
+Ao abrir o aplicativo, você verá uma interface com duas abas. Na aba "**Configurações**", preencha todos os campos:
+
+-   **Usuário**: Seu nome de usuário para login no sistema SGAT.
+-   **Senha**: Sua senha para login no sistema SGAT.
+-   **Data Inicial**: A primeira data do intervalo para preenchimento (formato `DD/MM/AAAA`).
+-   **Data Final**: A última data do intervalo para preenchimento (formato `DD/MM/AAAA`).
+-   **Datas Excluídas**: Datas específicas que devem ser ignoradas, separadas por vírgula (ex: `03/07/2025, 04/07/2025`). Este campo é opcional.
+-   **Cliente**: O nome do cliente a ser selecionado no formulário.
+-   **Etapa Comercial**: A etapa comercial a ser selecionada.
+-   **Categoria da Atividade**: A categoria da atividade a ser selecionada.
+-   **Local de Execução**: O local onde a atividade foi executada.
+-   **Hora de Início**: A hora de início da atividade (formato `HH:MM`).
+-   **Hora de Fim**: A hora de término da atividade (formato `HH:MM`).
+-   **Descrição**: Uma descrição detalhada da atividade a ser registrada.
+
+### 3. Salvar Configurações
+
+Após preencher todos os campos, clique no botão "**Salvar Configurações**". Isso irá gerar ou atualizar o arquivo `.env` na raiz do projeto com os valores que você inseriu.
+
+### 4. Executar o Script
+
+1.  Vá para a aba "**Execução**".
+2.  Clique no botão "**Executar Script**".
+3.  Acompanhe o progresso e as mensagens de log na área de texto abaixo. Você verá o navegador Chrome sendo controlado automaticamente.
 
 ---
 
-## 📦 Instalação das Dependências
+## 🔧 Configuração Avançada do `.env`
 
-> O arquivo `requirements.txt` já está incluso no repositório.
-
-```bash
-pip install -r requirements.txt
-```
-
----
-
-## 🧰 Instalando o ChromeDriver
-
-1. Acesse: [https://sites.google.com/chromium.org/driver/](https://sites.google.com/chromium.org/driver/)
-2. Baixe a versão que corresponde ao seu Google Chrome.
-3. Extraia o `chromedriver.exe` em uma pasta no seu computador (ex: `C:\chromedriver-win64\chromedriver.exe`).
-4. Use esse caminho na variável `CAMINHO_CHROMEDRIVER` no `.env`.
-
----
-
-## 🔧 Configuração do `.env`
-
-Crie um arquivo `.env` na raiz do projeto com o seguinte conteúdo:
+Embora o aplicativo gerencie o `.env` automaticamente, você pode editá-lo manualmente se necessário. O formato esperado é:
 
 ```env
-# Caminho para o chromedriver.exe
-CAMINHO_CHROMEDRIVER=C:\chromedriver-win64\chromedriver.exe
-
-# Credenciais do sistema
-USUARIO=seu_usuario
-SENHA=sua_senha
-
-# URLs do sistema SGAT (NÃO ALTERAR)
-URL_FORMULARIO=https://sgat.markway.com.br/sgatWay/faces/atendimento/create.xhtml
-
-# Intervalo de datas (formato dd/mm/aaaa)
-DATA_INICIAL=01/07/2025
-DATA_FINAL=31/07/2025
-
-# Datas a serem ignoradas (folgas, finais de semana, férias, etc)
-DATAS_EXCLUIDAS=03/07/2025,04/07/2025
-
-# Dados do formulário
-CLIENTE=MARKWAY
-ETAPA_COMERCIAL=Não se aplica
-CATEGORIA_ATIVIDADE=Trabalho Markway
-LOCAL_EXECUCAO=Home Office
-HORA_INICIO=10:00
-HORA_FIM=18:00
-DESCRICAO=Descrição da atividade
+USUARIO="seu_usuario"
+SENHA="sua_senha"
+DATA_INICIAL="01/07/2025"
+DATA_FINAL="31/07/2025"
+DATAS_EXCLUIDAS="03/07/2025, 04/07/2025"
+CLIENTE="MARKWAY"
+ETAPA_COMERCIAL="Não se aplica"
+CATEGORIA_ATIVIDADE="Trabalho Markway"
+LOCAL_EXECUCAO="Home Office"
+HORA_INICIO="10:00"
+HORA_FIM="18:00"
+DESCRICAO="Descrição da atividade"
 ```
 
 ---
 
-## 🚀 Executando o Script
+## 💡 Dicas e Solução de Problemas
 
-Com o ambiente ativado e o `.env` configurado corretamente, execute:
+### ChromeDriver
 
-```bash
-python main.py
-```
+-   **Erro "ChromeDriver not found"**: Verifique se o arquivo `chromedriver` está no mesmo diretório do aplicativo.
+-   **Erro "WinError 193" (Windows)**: Este erro geralmente indica uma incompatibilidade. Certifique-se de que o `chromedriver.exe` incluído no pacote é a versão correta para o seu sistema Windows 64-bit e que seu Google Chrome está atualizado.
 
----
+### Selenium e Preenchimento de Formulário
 
-## 📋 Exemplo de Execução
-
-O script irá:
-
-1. Acessar o formulário diretamente
-2. Realizar login se necessário
-3. Preencher todos os campos com base nas configurações
-4. Repetir o processo para cada data válida
-5. Ignorar automaticamente as datas listadas como excluídas
-6. Finalizar o navegador após a última submissão
-
----
-
-## 💡 Dicas
-
-- Sempre teste com um pequeno intervalo de datas antes de usar em produção
-- Ajuste o tempo dos `sleep()` ou substitua por `WebDriverWait` se a página for lenta
-- Verifique se o Chrome está atualizado para evitar erros de compatibilidade com o ChromeDriver
+-   **Elementos não encontrados**: O script `main.py` foi adaptado para os seletores que você forneceu. Se o layout do formulário SGAT mudar, pode ser necessário ajustar os seletores `By.ID` e `By.LINK_TEXT` dentro da função `fill_form` no `main.py`.
+-   **Timeout**: Se a página demorar para carregar, você pode aumentar o valor do `WebDriverWait` (atualmente 10 segundos) no `main.py`.
+-   **Pausas (`time.sleep`)**: As pausas foram ajustadas para o seu exemplo. Se o formulário tiver comportamentos assíncronos ou animações, pode ser necessário ajustar os `time.sleep()` para garantir que os elementos estejam prontos para interação.
 
 ---
 
 ## 🛠 Tecnologias Utilizadas
 
-- Python
-- Selenium WebDriver
-- python-dotenv
+-   **Python 3.11+**
+-   **Tkinter**: Para a interface gráfica do usuário.
+-   **Selenium WebDriver**: Para automação do navegador.
+-   **python-dotenv**: Para gerenciamento das variáveis de ambiente.
 
 ---
 
-Desenvolvido para automatizar tarefas repetitivas no SGAT e economizar tempo com segurança e confiabilidade.
+## 🤝 Compatibilidade
+
+-   **Sistemas Operacionais**: Windows (64-bit)
+-   **Python**: 3.11+.
+-   **Navegador**: Google Chrome (versão 128+).
+
+---
+
+Desenvolvido para automatizar tarefas repetitivas no SGAT, economizando tempo com segurança e confiabilidade. Para problemas específicos do formulário, consulte o código-fonte de `main.py`.
+
