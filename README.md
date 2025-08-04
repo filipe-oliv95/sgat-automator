@@ -1,6 +1,18 @@
 # SGAT Form Autofill - Versão 2.0
 
-Este aplicativo desktop automatiza o preenchimento de formulários no sistema **SGAT (Markway)**, utilizando **Python** e **Selenium**. Agora, com uma **interface gráfica amigável (Tkinter)**, o script realiza login automático, preenche campos configuráveis do formulário de atendimento e executa esse processo para um **intervalo de datas**, excluindo feriados, folgas ou dias específicos definidos.
+SGAT (Markway) é um sistema de controle de horas utilizado por empresas para que colaboradores registrem suas atividades e apontem as horas trabalhadas em projetos e atendimentos. O preenchimento desses formulários é uma tarefa recorrente e manual, exigindo que o funcionário detalhe diariamente suas horas no sistema.
+
+Este aplicativo desktop automatiza o preenchimento desses formulários no SGAT, utilizando Python e Selenium. Agora, com uma interface gráfica amigável (Tkinter), o script realiza login automático, preenche campos configuráveis do formulário de atendimento e executa esse processo para um intervalo de datas, excluindo feriados, folgas ou dias específicos definidos.
+
+<div align="center">
+  <img src="./assets/configs.JPG" alt="Configurações iniciais" width="800"/>
+  <p><em>Figure 1: Configurações iniciais</em></p>
+</div>
+
+<div align="center">
+  <img src="./assets/execution.JPG" alt="Execução do programa" width="800"/>
+  <p><em>Figure 1: Execução do programa</em></p>
+</div>
 
 ---
 
@@ -21,6 +33,7 @@ Este aplicativo desktop automatiza o preenchimento de formulários no sistema **
 
 ```
 projeto/
+├── assets              # Imagens do programa
 ├── app_gui.py          # Interface gráfica principal do aplicativo
 ├── main.py             # Script de automação principal (adaptado para GUI e multi-OS)
 ├── chromedriver        # Executável do ChromeDriver para Windows
