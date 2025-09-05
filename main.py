@@ -8,6 +8,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import Select
+from webdriver_manager.chrome import ChromeDriverManager
 from dotenv import load_dotenv
 
 URL_FORMULARIO = "https://sgat.markway.com.br/sgatWay/faces/atendimento/create.xhtml"
@@ -47,22 +48,19 @@ def load_environment_variables():
     return config
 
 def setup_chrome_driver():
-    """Configura o ChromeDriver"""
+    """Configura o ChromeDriver (usa diretório atual para armazenar)"""
+    os.environ['WDM_LOCAL'] = '1'  # força salvar no mesmo diretório
+
     chrome_options = Options()
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--window-size=1920,1080")
-    
-    # Usar o ChromeDriver local
-    chromedriver_path = os.path.join(os.getcwd(), 'chromedriver')
-    
-    if not os.path.exists(chromedriver_path):
-        raise FileNotFoundError(f"ChromeDriver não encontrado em: {chromedriver_path}")
-    
-    service = Service(chromedriver_path)
+
+    driver_path = ChromeDriverManager().install()
+    service = Service(driver_path)
     driver = webdriver.Chrome(service=service, options=chrome_options)
-    
+
     return driver
 
 def parse_date(date_str):
